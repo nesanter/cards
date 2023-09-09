@@ -16,9 +16,9 @@
 # along with cards.  If not, see <https://www.gnu.org/licenses/>.
 
 builddir = out/
-cflags = -Wall -flto -Iinclude -Iglad.gen/include -fdiagnostics-color
+cflags = -Wall -flto -Iinclude -Iglad.gen/include -Icini.gen/include -fdiagnostics-color
 sanflags = -fsanitize=undefined,address
-libs = -lglfw
+libs = -lglfw -lluajit-5.1
 
 include active.gen.ninja
 
@@ -56,14 +56,30 @@ build glad.gen/src/glad.c | $
       glad.gen/include/KHR/khrplatform.h: $
                             run-gen tools/glad.sh
 
+build cini.gen/src/ini.c $
+      cini.gen/src/map.c $
+      cini.gen/src/handle.c $
+      cini.gen/src/table.c | $
+      cini.gen/include/ini/ini.h $
+      cini.gen/include/ini/map.h $
+      cini.gen/include/ini/opts.h $
+      cini.gen/include/ini/table.h: $
+                            run-gen tools/cini.sh
+
 # ...sources
 build out/glad.o:           cc glad.gen/src/glad.c
+
+build out/ini/ini.o:        cc cini.gen/src/ini.c
+build out/ini/map.o:        cc cini.gen/src/map.c
+build out/ini/handle.o:     cc cini.gen/src/handle.c
+build out/ini/table.o:      cc cini.gen/src/table.c
 
 build out/main.o:           cc src/main.c
 
 # ...outputs
 build main: bin $
-    out/main.o out/glad.o | symbols.list
+    out/main.o out/glad.o out/ini/ini.o out/ini/map.o out/ini/handle.o $
+    out/ini/table.o | symbols.list
   libs = $libs -Wl,-dynamic-list,symbols.list
 
 #build wobj2ini: bin out/wobj2ini.o out/renderable.o out/util/wobj.o
