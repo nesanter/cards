@@ -1,0 +1,80 @@
+# Copyright © 2023 Noah Santer <ncwbbzp9@protonmail.com>
+#
+# This file is part of cards.
+#
+# cards is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# cards is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with cards.  If not, see <https://www.gnu.org/licenses/>.
+
+builddir = out/
+cflags = -Wall -flto -Iinclude -Iglad.gen/include -fdiagnostics-color
+sanflags = -fsanitize=undefined,address
+libs = -lglfw
+
+include active.gen.ninja
+
+defines = -DVERSION="\"$version\"" $defines
+
+rule cc
+  deps = gcc
+  depfile = $out.d
+  command = gcc -MMD -MF $out.d $cflags $defines $in -c -o $out
+
+rule bin
+  deps = gcc
+  depfile = $out.d
+  command = gcc -MMD -MF $out.d $cflags $defines $in -o $out $libs
+
+rule so
+  deps = gcc
+  depfile = $out.d
+  command = gcc -MMD -MF $out.d -fPIC $cflags $defines -shared $in -o $out
+
+rule no-ninja
+  command = ninja -t commands > $out
+
+rule run-gen
+  command = ./$in
+  generator = true
+
+rule run
+  pool = console
+  command = ./$in
+
+# ...generate
+build glad.gen/src/glad.c | $
+      glad.gen/include/glad/glad.h $
+      glad.gen/include/KHR/khrplatform.h: $
+                            run-gen tools/glad.sh
+
+# ...sources
+build out/glad.o:           cc glad.gen/src/glad.c
+
+build out/main.o:           cc src/main.c
+
+# ...outputs
+build main: bin $
+    out/main.o out/glad.o | symbols.list
+  libs = $libs -Wl,-dynamic-list,symbols.list
+
+#build wobj2ini: bin out/wobj2ini.o out/renderable.o out/util/wobj.o
+
+# ...tools
+
+# ...toplevel
+build all: phony main
+
+build run: run main
+build debug: run tools/debug.sh | all
+
+default debug
+

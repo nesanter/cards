@@ -1,0 +1,2 @@
+cflags = $cflags -g -Og $sanflags -Werror -fno-omit-frame-pointer
+version = debug
